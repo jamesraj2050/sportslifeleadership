@@ -372,9 +372,9 @@ export function HeroSection(props: ComponentProps<typeof VideoHero>) {
 export function SportsLifeClassicHero() {
   const shouldReduceMotion = useReducedMotion();
   const [activeImage, setActiveImage] = useState(0);
-  const [lifeScaleX, setLifeScaleX] = useState<number>(1);
+  const [lifeWidthPx, setLifeWidthPx] = useState<number | null>(null);
   const heroRef = useRef<HTMLElement>(null);
-  const lifeRef = useRef<HTMLSpanElement>(null);
+  const lifeRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLSpanElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const imageScale = useTransform(scrollYProgress, [0, 1], [1, 1.12]);
@@ -421,23 +421,15 @@ export function SportsLifeClassicHero() {
 
   useEffect(() => {
     const recalc = () => {
-      const lifeEl = lifeRef.current;
       const bottomEl = bottomRef.current;
-      if (!lifeEl || !bottomEl) return;
+      if (!bottomEl) return;
 
-      // `offsetWidth` ignores transforms. We want to scale LIFE from its unscaled
-      // intrinsic layout width to match the *rendered* width of "INTO SPORTS".
-      const lifeBaseWidth = lifeEl.offsetWidth;
       const bottomRenderedWidth = bottomEl.getBoundingClientRect().width;
-      if (!lifeBaseWidth || !bottomRenderedWidth) return;
+      if (!bottomRenderedWidth) return;
 
-      // Make LIFE intentionally wider than "INTO SPORTS"
+      // LIFE is intentionally wider than "INTO SPORTS".
       const overshoot = 1.12;
-      const next = (bottomRenderedWidth * overshoot) / lifeBaseWidth;
-      const isMobile = window.matchMedia("(max-width: 640px)").matches;
-      // Mobile browsers can render -webkit-text-stroke as segmented when combined
-      // with transforms; keep LIFE centered and unscaled on mobile.
-      setLifeScaleX(isMobile ? 1 : Math.max(0.7, Math.min(1.6, next)));
+      setLifeWidthPx(bottomRenderedWidth * overshoot);
     };
 
     recalc();
@@ -446,7 +438,6 @@ export function SportsLifeClassicHero() {
     // Recalc again once fonts are ready (fixes mismatched widths on first load).
     (document as any).fonts?.ready?.then?.(recalc);
     const ro = new ResizeObserver(() => recalc());
-    if (lifeRef.current) ro.observe(lifeRef.current);
     if (bottomRef.current) ro.observe(bottomRef.current);
     window.addEventListener("resize", recalc);
     return () => {
@@ -498,13 +489,29 @@ export function SportsLifeClassicHero() {
             <span className="w-fit whitespace-nowrap origin-center scale-x-[1.12] font-heading text-[clamp(2.5rem,5.56vw,5rem)] font-extrabold tracking-[-0.04em] text-white">
               Infusing
             </span>
-            <span
+            <div
               ref={lifeRef}
-              className="w-fit whitespace-nowrap origin-center font-heading text-[clamp(9rem,20vw,19rem)] font-black leading-[0.78] tracking-[-0.02em] text-transparent [-webkit-text-stroke:3px_#fff] md:[-webkit-text-stroke:3px_#fff]"
-              style={{ transform: `scaleX(${lifeScaleX})` }}
+              className="w-fit max-w-[96vw]"
+              style={lifeWidthPx ? { width: `${lifeWidthPx}px` } : undefined}
+              aria-hidden="true"
             >
-              Life
-            </span>
+              <svg viewBox="0 0 1000 520" className="h-auto w-full overflow-visible">
+                <text
+                  x="50%"
+                  y="78%"
+                  textAnchor="middle"
+                  fill="transparent"
+                  stroke="#fff"
+                  strokeWidth="3"
+                  fontFamily={'"Nunito Sans", Helvetica, Arial, Lucida, sans-serif'}
+                  fontWeight="900"
+                  fontSize="440"
+                  letterSpacing="-10"
+                >
+                  LIFE
+                </text>
+              </svg>
+            </div>
             <span ref={bottomRef} className="w-fit whitespace-nowrap origin-center scale-x-[1.08] font-heading text-[clamp(2.5rem,5.56vw,5rem)] font-extrabold tracking-[-0.04em] text-white [word-spacing:0.14em]">
               Into Sports
             </span>
